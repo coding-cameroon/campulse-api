@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(clerkMiddleware());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/", (_: Request, res: Response) => {
+app.get("/", (_: Request, res: Response) => {
   return res.status(200).json({ success: true, message: "Server running" });
 });
 
