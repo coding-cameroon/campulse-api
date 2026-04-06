@@ -6,13 +6,8 @@ import { clerkMiddleware } from "@clerk/express";
 import { PORT } from "@/config/env";
 import { connectDB } from "@/config/db";
 import { globalErrorHandler } from "./middlewares/error.middleware.js";
-import { webHookRouter } from "./modules/webhooks/webhook.route.js";
-import { generateAnonName } from "./utils/anonymousName.js";
-import { generateDicebearUrl } from "./utils/dicebear.js";
 
 const app = express();
-
-app.use("/api", express.raw({ type: "application/json" }), webHookRouter);
 
 app.use(
   cors({
@@ -32,7 +27,7 @@ app.get("/", (_: Request, res: Response) => {
 app.use(globalErrorHandler);
 
 export const startServer = async () => {
-  // await connectDB();
+  await connectDB();
 
   app.listen(PORT, () => {
     console.log(`Server running on  http://localhost:${PORT}`);
