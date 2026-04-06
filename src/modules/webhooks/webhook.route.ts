@@ -4,7 +4,7 @@ import { userWebhook } from "./webhook.controller.js";
 const router = Router();
 
 router.post(
-  "/webhooks",
+  "/campulse-webhook",
   express.raw({ type: "application/json" }),
   userWebhook,
 );

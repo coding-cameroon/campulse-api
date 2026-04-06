@@ -9,11 +9,7 @@ import { webHookRouter } from "./modules/webhooks/webhook.route.js";
 
 const app = express();
 
-app.post(
-  "/api/campulse-webhook",
-  express.raw({ type: "application/json" }),
-  webHookRouter,
-);
+app.use("/api", express.raw({ type: "application/json" }), webHookRouter);
 
 app.use(express.json());
 app.use(clerkMiddleware());
