@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import { ForbiddenError, UnauthorizedError } from "@/errors/AppError.js";
 
-export const permit = async (...roles: string[]) => {
+export const permit = (...roles: string[]) => {
   return (req: Request, _: Response, next: NextFunction) => {
     const user = req.user;
 

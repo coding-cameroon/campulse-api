@@ -27,11 +27,11 @@ export const userServices = {
   },
 
   //   DEACTIVATE USER
-  async deactivateUser(id: string): Promise<User> {
+  async toggleUserActiveState(id: string, state = false): Promise<User> {
     return await db.transaction(async (tx) => {
       const [user] = await tx
         .update(users)
-        .set({ isActive: false, updatedAt: new Date() })
+        .set({ isActive: state, updatedAt: new Date() })
         .where(eq(users.id, id))
         .returning();
       return user;
@@ -68,5 +68,13 @@ export const userServices = {
       .where(eq(users.clerkId, clerkId))
       .limit(1);
     return result[0] ?? null;
+  },
+
+  // DELETE USER
+  async deleteUser(id: string): Promise<User> {
+    return await db.transaction(async (tx) => {
+      const [user] = await tx.delete(users).where(eq(users.id, id));
+      return user;
+    });
   },
 };
