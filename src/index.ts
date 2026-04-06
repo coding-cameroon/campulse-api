@@ -5,6 +5,7 @@ import { clerkMiddleware } from "@clerk/express";
 import { PORT } from "@/config/env";
 import { connectDB } from "@/config/db";
 import { globalErrorHandler } from "./middlewares/error.middleware.js";
+import { webHookRouter } from "./modules/webhooks/webhook.route.js";
 
 const app = express();
 
@@ -15,6 +16,11 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/", (_: Request, res: Response) => {
   return res.status(200).json({ success: true, message: "Server running" });
 });
+app.post(
+  "/api/campulse-webhook",
+  express.raw({ type: "application/json" }),
+  webHookRouter,
+);
 
 // last middleware to be used
 app.use(globalErrorHandler);
