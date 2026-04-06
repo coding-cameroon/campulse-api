@@ -12,6 +12,9 @@ export const users = pgTable("users", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   realAvatarUrl: text("real_avatar_url"),
+  coverAvatarUrl: text("cover_avatar_url").default(
+    "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80",
+  ),
 
   anonymousName: text("anonymous_name").notNull(),
   anonymousAvatarUrl: text("anonymous_avatar_url").notNull(),
