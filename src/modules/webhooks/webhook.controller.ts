@@ -12,8 +12,7 @@ export const userWebhook = async (req: Request, res: Response) => {
     );
 
     console.log("Webhook payload:", evt.data);
-
-    return res.send("Webhook received");
+    return res.status(200).json({ data: evt.data });
   } catch (err) {
     console.error("Error verifying webhook:", err);
     return res.status(400).send("Error verifying webhook");

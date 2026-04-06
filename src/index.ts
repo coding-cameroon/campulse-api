@@ -9,6 +9,12 @@ import { webHookRouter } from "./modules/webhooks/webhook.route.js";
 
 const app = express();
 
+app.post(
+  "/api/campulse-webhook",
+  express.raw({ type: "application/json" }),
+  webHookRouter,
+);
+
 app.use(express.json());
 app.use(clerkMiddleware());
 app.use(express.urlencoded({ extended: true }));
@@ -16,11 +22,6 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/", (_: Request, res: Response) => {
   return res.status(200).json({ success: true, message: "Server running" });
 });
-app.post(
-  "/api/campulse-webhook",
-  express.raw({ type: "application/json" }),
-  webHookRouter,
-);
 
 // last middleware to be used
 app.use(globalErrorHandler);
