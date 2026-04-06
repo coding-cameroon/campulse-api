@@ -18,8 +18,8 @@ router.patch(
   userController.deleteUser,
 );
 router.post("/sync", userController.syncUser);
-router.put("/:id", requireAuth, userController.getUser);
+router.get("/:id", requireAuth, userController.getUser);
+router.put("/:id", requireAuth, userController.updateUser);
 router.get("/", requireAuth, permit("admin"), userController.getUsers);
-router.get("/:id", requireAuth, permit("admin"), userController.getUser);
 
 export { router as UserRouter };
