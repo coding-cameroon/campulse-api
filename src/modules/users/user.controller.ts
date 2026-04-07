@@ -4,7 +4,13 @@ import { generateDicebearUrl } from "@/utils/dicebear.js";
 import { clerkClient, getAuth } from "@clerk/express";
 import { NextFunction, Request, Response } from "express";
 import { userServices } from "./user.service.js";
-import { InternalError, NotFoundError } from "@/errors/AppError.js";
+import {
+  BadRequestError,
+  InternalError,
+  NotFoundError,
+} from "@/errors/AppError.js";
+import { mediaService } from "../media/media.service.js";
+import { User } from "@/db/schema/users.js";
 
 export const userController = {
   // SYNC USER DATA INTO DB
@@ -129,8 +135,46 @@ export const userController = {
   },
 
   // UPDATE USER
-  async updateUser(req: Request, res: Response, next: NextFunction) {
+  async updateProfileImage(req: Request, res: Response, next: NextFunction) {
     try {
+      const file = req.file;
+      const { id } = req.user;
+      const { type } = req.query; // 'cover' or 'real'
+
+      if (!file) throw new BadRequestError("Please upload an image file.");
+      if (type !== "cover" && type !== "real") {
+        throw new BadRequestError("Invalid type. Use 'cover' or 'real'.");
+      }
+
+      const currentUser = await userServices.getUser(id);
+      if (!currentUser) throw new NotFoundError("User not found.");
+
+      const idKey = type === "cover" ? "coverAvatarUrlId" : "realAvatarUrlId";
+      const urlKey = type === "cover" ? "coverAvatarUrl" : "realAvatarUrl";
+      const existingFileId = currentUser[idKey];
+
+      if (existingFileId) {
+        try {
+          await mediaService.deleteImage(existingFileId);
+        } catch (err) {
+          throw new InternalError(`Failed to delete old image: ${err}`);
+        }
+      }
+
+      const uploadResult = await mediaService.uploadImage(file, "avatars");
+      if (!uploadResult)
+        throw new InternalError("Failed to process image upload.");
+
+      const updatedUser = await userServices.updateUser(id, {
+        [urlKey]: uploadResult.url,
+        [idKey]: uploadResult.fileId,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: updatedUser,
+        message: "Profile image updated.",
+      });
     } catch (error) {
       next(error);
     }

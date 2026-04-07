@@ -14,7 +14,15 @@ export const userServices = {
   //   UPDATE USER
   async updateUser(
     id: string,
-    data: Partial<Pick<User, "firstName" | "lastName" | "realAvatarUrl">>,
+    data: Partial<
+      Pick<
+        User,
+        | "coverAvatarUrl"
+        | "realAvatarUrl"
+        | "coverAvatarUrlId"
+        | "realAvatarUrlId"
+      >
+    >,
   ): Promise<User> {
     return await db.transaction(async (tx) => {
       const [updated] = await tx
