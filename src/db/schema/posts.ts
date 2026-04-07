@@ -8,6 +8,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 import { users } from "./users";
+import { IntegrationInSerializer } from "svix/dist/models/integrationIn.js";
 
 export const postCategoryEnum = pgEnum("post_category", [
   "feed",
@@ -40,15 +41,23 @@ export const posts = pgTable(
     title: text("title"),
     body: text("body").notNull(),
     imageUrls: text("image_urls").array(),
+    imageFileIds: text("image_file_ids").array(),
 
+    // anyn feeds
     anonName: text("anon_name"),
     anonAvatarUrl: text("anon_avatar_url"),
 
+    // events and lost found
     realName: text("real_name"),
     realAvatarUrl: text("real_avatar_url"),
 
+    // lost found
+    collectAt: text("collect_at"),
+    lastSeenAt: text("last_seen_at"),
+    phoneNumber: integer("phone_number"),
     itemStatus: itemStatusEnum("item_status"),
 
+    // events
     eventLocation: text("event_location"),
     eventStartAt: timestamp("event_start_at"),
     eventEndAt: timestamp("event_end_at"),

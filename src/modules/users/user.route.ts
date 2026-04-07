@@ -22,4 +22,4 @@ router.get("/:id", requireAuth, userController.getUser);
 router.put("/:id", requireAuth, userController.updateUser);
 router.get("/", requireAuth, permit("admin"), userController.getUsers);
 
-export { router as UserRouter };
+export { router as userRouter };

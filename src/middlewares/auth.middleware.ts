@@ -1,6 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
 import { userServices } from "@/modules/users/user.service.js";
-import { NotFoundError, UnauthorizedError } from "@/errors/AppError.js";
+import {
+  ForbiddenError,
+  NotFoundError,
+  UnauthorizedError,
+} from "@/errors/AppError.js";
 import { getAuth } from "@clerk/express";
 
 export const requireAuth = async (
@@ -15,6 +19,7 @@ export const requireAuth = async (
 
     const user = await userServices.findByClerkId(userId);
     if (!user) throw new NotFoundError("User account doesn't exist");
+    if (!user.isActive) throw new ForbiddenError("User account is inactive.");
 
     req.user = user;
     next();
