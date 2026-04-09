@@ -3,6 +3,8 @@ import { logger } from "@/logger/logger.js";
 import { InternalError } from "@/errors/AppError.js";
 import { mediaService } from "@/modules/media/media.service.js";
 import { postServices } from "@/modules/posts/post.service.js";
+import { socketEvents } from "@/sockets/index.js";
+import { getIO } from "@/config/socket.js";
 
 const postCronExpiry = () => {
   cron.schedule("* * * * *", async () => {
@@ -31,6 +33,7 @@ const postCronExpiry = () => {
       if (!updatedExpiredPosts)
         throw new InternalError("Failed to update expired posts.");
 
+      socketEvents.postExpired(getIO(), updatedExpiredPosts);
       logger.info(
         `Expired ${updatedExpiredPosts.length} post(s): ${updatedExpiredPosts
           .map((p) => p.id)
@@ -50,6 +53,7 @@ const startPostCleanupJob = () => {
       if (deletedPosts.length > 0) {
         logger.info(`Deleted ${deletedPosts.length} expired posts`);
       }
+      socketEvents.postExpired(getIO(), deletedPosts);
     } catch (error) {
       logger.error("Post cleanup cron failed", error);
     }
