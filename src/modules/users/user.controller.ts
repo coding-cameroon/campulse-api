@@ -6,6 +6,7 @@ import { NextFunction, Request, Response } from "express";
 import { userServices } from "./user.service.js";
 import {
   BadRequestError,
+  ConflictError,
   InternalError,
   NotFoundError,
 } from "@/errors/AppError.js";
@@ -16,8 +17,12 @@ export const userController = {
   async syncUser(req: Request, res: Response, next: NextFunction) {
     try {
       const { userId } = getAuth(req);
+      if (!userId) throw new BadRequestError("User id ot provided.");
 
       const clerkUser = await clerkClient.users.getUser(userId || "");
+
+      const userExist = await userServices.findByClerkId(clerkUser.id);
+      if (userExist) throw new ConflictError("User already exist.");
 
       // data
       const anonymousName = generateAnonName();
@@ -66,7 +71,7 @@ export const userController = {
       if (!deletedUser)
         throw new InternalError("Unable to delete user. Try again.");
 
-      const imageKitRegex: RegExp = /^https:\/\/ik\.imagekit\.io\/$/;
+      const imageKitRegex: RegExp = /^https:\/\/ik\.imagekit\.io\//;
       const isImageKitAvatarUrl =
         deletedUser.realAvatarUrl?.match(imageKitRegex);
       const isImageKitCoverAvatarUrl =
@@ -75,7 +80,7 @@ export const userController = {
       const imageKitDeleteIds = [
         isImageKitAvatarUrl && deletedUser.realAvatarUrlId,
         isImageKitCoverAvatarUrl && deletedUser.coverAvatarUrlId,
-      ];
+      ].filter(Boolean) as string[];
 
       try {
         await mediaService.deleteMultipleImages(imageKitDeleteIds as string[]);
@@ -114,7 +119,7 @@ export const userController = {
       return res.status(200).json({
         success: true,
         data: updatedUser,
-        message: `User ${newState ? "deactivated" : "activated"}`,
+        message: `User ${newState ? "activated" : "deactivated"}`,
       });
     } catch (err) {
       next(err);
@@ -234,7 +239,7 @@ export const userController = {
       const { id } = req.user;
       const { firstname, lastname } = req.body;
 
-      if (!firstname && lastname) {
+      if (!firstname || lastname) {
         throw new BadRequestError(
           "Provide your full name (first and last name).",
         );
@@ -245,7 +250,7 @@ export const userController = {
 
       const data = { firstName: firstname, lastName: lastname };
       const updatedClerkUser = await clerkClient.users.updateUser(
-        currentUser.id,
+        currentUser.clerkId,
         data,
       );
       if (!updatedClerkUser)

@@ -3,14 +3,16 @@ import { expriryDate } from "@/utils/deteminDate.js";
 import { NextFunction, Request, Response } from "express";
 import {
   BadRequestError,
+  ForbiddenError,
   InternalError,
   NotFoundError,
-  UnauthorizedError,
 } from "@/errors/AppError.js";
 import { mediaService } from "../media/media.service.js";
 import { Post } from "@/db/schema/posts.js";
 
 export const postController = {
+
+  // CREATE POST
   async createPost(req: Request, res: Response, next: NextFunction) {
     try {
       const {
@@ -41,28 +43,20 @@ export const postController = {
 
       if (category === "event") {
         if (!title) throw new BadRequestError("Event title is required");
-        if (!eventStartAt)
-          throw new BadRequestError("Event start date is required");
-        if (!eventEndAt)
-          throw new BadRequestError("Event end date is required");
-        if (!eventLocation)
-          throw new BadRequestError("Event location is required");
-        if (!mapCoordinates)
-          throw new BadRequestError("Provide event geo coordinates");
+        if (!eventStartAt) throw new BadRequestError("Event start date is required");
+        if (!eventEndAt) throw new BadRequestError("Event end date is required");
+        if (!eventLocation) throw new BadRequestError("Event location is required");
+        if (!mapCoordinates) throw new BadRequestError("Provide event geo coordinates");
       }
 
       if (category === "lost_found") {
         if (!title) throw new BadRequestError("Lost & found title is required");
-        if (!itemStatus)
-          throw new BadRequestError("Item status (lost/found) is required");
-        if (!collectAt)
-          throw new BadRequestError("Provide an area to collect the item");
-        if (!lastSeenAt)
-          throw new BadRequestError("Provide last seen location");
+        if (!itemStatus) throw new BadRequestError("Item status (lost/found) is required");
+        if (!collectAt) throw new BadRequestError("Provide an area to collect the item");
+        if (!lastSeenAt) throw new BadRequestError("Provide last seen location");
         if (!phoneNumber) throw new BadRequestError("Provide a contact number");
       }
 
-      // Upload after validation — no orphaned images on bad requests
       const files = req.files as Express.Multer.File[];
       const uploads =
         files && files.length > 0
@@ -117,13 +111,10 @@ export const postController = {
 
       const validCategories = ["feed", "event", "lost_found"];
       if (category && !validCategories.includes(category)) {
-        throw new BadRequestError(
-          "Valid categories are: feed, event or lost_found",
-        );
+        throw new BadRequestError("Valid categories are: feed, event or lost_found");
       }
 
       const posts = await postServices.getPosts({ page, limit, category });
-      if (!posts) throw new NotFoundError("Failed to fetch posts.");
 
       return res.status(200).json({
         success: true,
@@ -133,7 +124,7 @@ export const postController = {
           page,
           limit,
           count: posts.length,
-          totalPages: Math.ceil(posts.length / limit),
+          hasMore: posts.length === limit, // ✅ reliable without extra COUNT query
         },
       });
     } catch (error) {
@@ -146,7 +137,7 @@ export const postController = {
     try {
       const { id } = req.params;
 
-      const post = await postServices.getPost(id as string);
+      const post = await postServices.getPost(id);
       if (!post) throw new NotFoundError(`No post found with id: ${id}`);
 
       return res.status(200).json({
@@ -165,21 +156,20 @@ export const postController = {
       const { id } = req.params;
       const user = req.user;
 
-      const postToDelete = await postServices.getPost(id as string);
-      if (!postToDelete)
-        throw new NotFoundError(`No post found with id: ${id}`);
+      const postToDelete = await postServices.getPost(id);
+      if (!postToDelete) throw new NotFoundError(`No post found with id: ${id}`);
 
-      if (postToDelete.authorId !== user.id || user.role !== "admin")
-        throw new UnauthorizedError(
-          "You are not permitted to delete this post.",
-        );
+      // ✅ Block if NOT the owner AND NOT an admin
+      if (postToDelete.authorId !== user.id && user.role !== "admin") {
+        throw new ForbiddenError("You are not permitted to delete this post.");
+      }
 
       const deletedPost = await postServices.deletePost(postToDelete.id);
       if (!deletedPost) throw new InternalError("Failed to delete post.");
 
       if (deletedPost.imageFileIds && deletedPost.imageFileIds.length > 0) {
         await mediaService.deleteMultipleImages(
-          deletedPost.imageFileIds as string[],
+          deletedPost.imageFileIds as string[]
         );
       }
 

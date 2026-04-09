@@ -16,6 +16,8 @@ export const comments = pgTable(
     authorId: text("author_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    displayName: text("display_name").notNull(),
+    displayAvatarUrl: text("display_avatar_url").notNull(),
 
     body: text("body").notNull(),
 

@@ -1,10 +1,7 @@
-import {
-  Reaction,
-  reactions,
-  reactionTypeEnum,
-} from "@/db/schema/reactions.js";
+import { Reaction } from "@/db/schema/reactions.js";
 import {
   BadRequestError,
+  ForbiddenError,
   InternalError,
   NotFoundError,
 } from "@/errors/AppError.js";
@@ -12,78 +9,89 @@ import type { Request, Response, NextFunction } from "express";
 import { reactionServices } from "./reaction.service.js";
 import { postServices } from "../posts/post.service.js";
 
+const VALID_REACTIONS = ["like", "heart", "laugh", "sad"] as const;
+type ReactionType = (typeof VALID_REACTIONS)[number];
+type reactionProps = {
+  postId: string;
+  userId: string;
+};
+
 export const reactionController = {
-  // CREATE REACTIONS
+  // TOGGLE REACTION
   async toggleReaction(req: Request, res: Response, next: NextFunction) {
     try {
       const { postId } = req.params;
-      const { type } = req.query;
-      const { id } = req.user;
+      const { type } = req.body;
+      const { id: userId } = req.user;
 
-      if (!postId) throw new BadRequestError("Provide a post to react on.");
+      const post = await postServices.getPost(postId as string);
+      if (!post) throw new NotFoundError(`No post found with id: ${postId}`);
 
-      let reaction;
-      let action: "deleted" | "created";
-
-      const reactionExist = await reactionServices.getReaction({
-        postId,
-        userId: id,
-      } as { userId: string; postId: string });
-
-      if (!reactionExist) {
-        if (!type) throw new BadRequestError("Provide a  reaction");
-
-        if (!["like", "heart", "laugh", "sad"].includes(type as string))
-          throw new BadRequestError(
-            "Invalid reaction type (like,heart,laugh,sad).",
-          );
-
-        reaction = await reactionServices.createReactions({
-          postId,
-          type,
-          userId: id,
-        } as Reaction);
-        action = "created";
-      } else {
-        reaction = await reactionServices.deleteReaction({
-          postId,
-          type,
-          userId: id,
-        } as Reaction);
-        action = "deleted";
+      if (post.expiresAt && post.expiresAt < new Date()) {
+        throw new ForbiddenError("Cannot react to an expired post.");
       }
 
-      if (!reaction)
-        throw new InternalError(
-          `failed to ${action === "created" ? "create" : "delete"} reaction.`,
-        );
+      const reactionExists = await reactionServices.getReaction({
+        postId,
+        userId,
+      } as reactionProps);
 
-      return res
-        .status(action === "created" ? 201 : 200)
-        .json({ success: true, data: reaction, message: `Reaction ${action}` });
+      if (reactionExists) {
+        const deleted = await reactionServices.deleteReaction({
+          postId,
+          userId,
+        } as reactionProps);
+        if (!deleted) throw new InternalError("Failed to delete reaction.");
+
+        return res.status(200).json({
+          success: true,
+          data: deleted,
+          message: "Reaction removed.",
+        });
+      }
+
+      if (!type) throw new BadRequestError("Provide a reaction type.");
+      if (!VALID_REACTIONS.includes(type as ReactionType)) {
+        throw new BadRequestError(
+          "Invalid reaction type. Use: like, heart, laugh or sad.",
+        );
+      }
+
+      const created = await reactionServices.createReactions({
+        postId,
+        userId,
+        type,
+      } as Reaction);
+      if (!created) throw new InternalError("Failed to create reaction.");
+
+      return res.status(201).json({
+        success: true,
+        data: created,
+        message: "Reaction added.",
+      });
     } catch (error) {
       next(error);
     }
   },
 
-  //   GET REACTIONS
+  // GET REACTIONS
   async getReactions(req: Request, res: Response, next: NextFunction) {
     try {
       const { postId } = req.params;
 
-      if (!postId) throw new BadRequestError("Provide a post id.");
-
       const post = await postServices.getPost(postId as string);
-      if (!post || (post.expiresAt && post.expiresAt > new Date()))
-        throw new InternalError(`Error getting reactions.`);
+      if (!post) throw new NotFoundError(`No post found with id: ${postId}`);
+
+      if (post.expiresAt && post.expiresAt < new Date()) {
+        throw new ForbiddenError("This post has expired.");
+      }
 
       const reactions = await reactionServices.getReactions(post.id);
-      if (!reactions)
-        throw new InternalError("Failed to retrieved the reactions.");
 
       return res.status(200).json({
         success: true,
         data: reactions,
+        meta: { count: reactions.length },
         message: "Reactions retrieved successfully",
       });
     } catch (error) {

@@ -4,7 +4,7 @@ import { requireAuth } from "@/middlewares/auth.middleware.js";
 
 const router = Router();
 
-router.get("/:id", requireAuth, reactionController.getReactions);
+router.get("/:postId", requireAuth, reactionController.getReactions);
 router.post("/upsert", requireAuth, reactionController.toggleReaction);
 
 export { router as reactionRouter };

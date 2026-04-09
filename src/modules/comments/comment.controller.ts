@@ -2,37 +2,53 @@ import { Request, Response, NextFunction } from "express";
 import { commentServices } from "./comment.service.js";
 import {
   BadRequestError,
+  ForbiddenError,
   InternalError,
   NotFoundError,
-  UnauthorizedError,
 } from "@/errors/AppError.js";
 import { Comment } from "@/db/schema/comments.js";
+import { postServices } from "@/modules/posts/post.service.js";
 
 export const commentController = {
-  // CREATE COMMENTS
+  // CREATE COMMENT
   async createComment(req: Request, res: Response, next: NextFunction) {
     try {
       const user = req.user;
       const { postId } = req.params;
       const { comment } = req.body;
 
-      if (!postId) throw new BadRequestError("Provide a post to comment on.");
-      if (!comment) throw new BadRequestError("Provide a comment to comment.");
+      if (!comment) throw new BadRequestError("Comment body is required.");
 
-      const data = { authorId: user.id, body: comment, postId } as Comment;
-      const newComment = await commentServices.createComment(data);
+      const post = await postServices.getPost(postId as string);
+      if (!post) throw new NotFoundError(`No post found with id: ${postId}`);
+
+      const newComment = await commentServices.createComment({
+        authorId: user.id,
+        body: comment,
+        postId,
+        displayName:
+          post.category === "feed"
+            ? user.anonymousName
+            : `${user.firstName} ${user.lastName}`,
+        displayAvatarUrl:
+          post.category === "feed"
+            ? user.anonymousAvatarUrl
+            : (user.realAvatarUrl ?? user.anonymousAvatarUrl),
+      } as Comment);
 
       if (!newComment) throw new InternalError("Failed to create comment.");
 
-      return res
-        .status(201)
-        .json({ success: true, data: newComment, message: "Comment created." });
+      return res.status(201).json({
+        success: true,
+        data: newComment,
+        message: "Comment created.",
+      });
     } catch (error) {
       next(error);
     }
   },
 
-  //   DELETE COMMENTS
+  // DELETE COMMENT
   async deleteComment(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
@@ -41,10 +57,11 @@ export const commentController = {
       const comment = await commentServices.getComment(id as string);
       if (!comment) throw new NotFoundError(`No comment found with id: ${id}`);
 
-      if (user.id !== comment.authorId || user.role !== "admin")
-        throw new UnauthorizedError(
-          "You are not authorized to delete this comment.",
+      if (comment.authorId !== user.id && user.role !== "admin") {
+        throw new ForbiddenError(
+          "You are not permitted to delete this comment.",
         );
+      }
 
       const deletedComment = await commentServices.deleteComment(id as string);
       if (!deletedComment) throw new InternalError("Failed to delete comment.");
@@ -59,38 +76,42 @@ export const commentController = {
     }
   },
 
-  //   GET COMMENTS
+  // GET COMMENTS
   async getComments(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      const { page, limit } = req.query;
-      if (!id) throw new BadRequestError("Provide a post id.");
+      const { postId } = req.params;
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 20;
 
       const comments = await commentServices.getComments(
-        id as string,
-        Number(page),
-        Number(limit),
+        postId as string,
+        page,
+        limit,
       );
-      if (!comments) throw new InternalError("Failed to get comments.");
 
       return res.status(200).json({
         success: true,
         data: comments,
         message: "Comments retrieved successfully",
+        meta: {
+          page,
+          limit,
+          count: comments.length,
+          hasMore: comments.length === limit,
+        },
       });
     } catch (error) {
       next(error);
     }
   },
 
-  //   GET COMMENTS
+  // GET COMMENT
   async getComment(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      if (!id) throw new BadRequestError("Provide a comment id.");
 
       const comment = await commentServices.getComment(id as string);
-      if (!comment) throw new InternalError("Failed to get comment.");
+      if (!comment) throw new NotFoundError(`No comment found with id: ${id}`);
 
       return res.status(200).json({
         success: true,
