@@ -12,20 +12,17 @@ router.delete(
   permit("admin"),
   userController.deleteUser,
 );
-router.patch(
-  "/:id/deactivate",
-  requireAuth,
-  permit("admin"),
-  userController.deactivateUser,
-);
 router.put(
-  "/:id",
+  "/update/profile-image",
   requireAuth,
   upload.single("avatar"),
   userController.updateProfileImage,
 );
 router.post("/sync", userController.syncUser);
+router.get("/me", requireAuth, userController.getMe);
 router.get("/:id", requireAuth, userController.getUser);
 router.get("/", requireAuth, permit("admin"), userController.getUsers);
+router.put("/update/profile-name", requireAuth, userController.updateName);
+router.patch("/:id/deactivate", requireAuth, userController.deactivateUser);
 
 export { router as userRouter };

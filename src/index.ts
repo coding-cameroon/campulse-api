@@ -8,6 +8,7 @@ import { connectDB } from "@/config/db";
 import { userRouter } from "./modules/users/user.route.js";
 import { postRouter } from "./modules/posts/post.route.js";
 import { globalErrorHandler } from "./middlewares/error.middleware.js";
+import { commentRouter } from "./modules/comments/comment.route.js";
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.get("/", (_: Request, res: Response) => {
 });
 app.use("/v1/api/users", userRouter);
 app.use("/v1/api/posts", postRouter);
+app.use("/v1/api/comments", commentRouter);
 
 // last middleware to be used
 app.use(globalErrorHandler);

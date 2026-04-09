@@ -10,7 +10,6 @@ import {
   NotFoundError,
 } from "@/errors/AppError.js";
 import { mediaService } from "../media/media.service.js";
-import { User } from "@/db/schema/users.js";
 
 export const userController = {
   // SYNC USER DATA INTO DB
@@ -26,18 +25,22 @@ export const userController = {
       const email =
         clerkUser.primaryEmailAddress?.emailAddress ||
         clerkUser.emailAddresses[0].emailAddress;
+      const role = determineRole(email);
 
       const userData = {
+        role,
         email,
         anonymousName,
-        clerkId: clerkUser.id,
         anonymousAvatarUrl,
+        clerkId: clerkUser.id,
         lastName: clerkUser.lastName,
         firstName: clerkUser.firstName,
-        role: determineRole(email),
         realAvatarUrl: clerkUser.imageUrl,
       };
 
+      await clerkClient.users.updateUserMetadata(clerkUser.id, {
+        publicMetadata: { role },
+      });
       const newUser = await userServices.createUser(userData);
       res.status(201).json({
         success: true,
@@ -60,15 +63,33 @@ export const userController = {
       await clerkClient.users.deleteUser(user.clerkId);
       const deletedUser = await userServices.deleteUser(id as string);
 
-      // ! delete user image url from the cloud storage provider
-
       if (!deletedUser)
         throw new InternalError("Unable to delete user. Try again.");
 
+      const imageKitRegex: RegExp = /^https:\/\/ik\.imagekit\.io\/$/;
+      const isImageKitAvatarUrl =
+        deletedUser.realAvatarUrl?.match(imageKitRegex);
+      const isImageKitCoverAvatarUrl =
+        deletedUser.coverAvatarUrl?.match(imageKitRegex);
+
+      const imageKitDeleteIds = [
+        isImageKitAvatarUrl && deletedUser.realAvatarUrlId,
+        isImageKitCoverAvatarUrl && deletedUser.coverAvatarUrlId,
+      ];
+
+      try {
+        await mediaService.deleteMultipleImages(imageKitDeleteIds as string[]);
+      } catch (err) {
+        throw new InternalError(
+          `Error deleting images from imageKit.io: ${err}`,
+        );
+      }
+
       return res.status(200).json({
         success: true,
-        message: "User deleted successfully",
         data: deletedUser,
+        message:
+          "User deleted successfully and image cleared from imageKit.io storage.",
       });
     } catch (err) {
       next(err);
@@ -97,6 +118,22 @@ export const userController = {
       });
     } catch (err) {
       next(err);
+    }
+  },
+
+  // GET USER
+  async getMe(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.user;
+
+      const user = await userServices.getUser(id as string);
+      if (!user) throw new NotFoundError(`User not found with id: ${id}`);
+
+      return res
+        .status(200)
+        .json({ message: "Successfully retrieved user", data: user });
+    } catch (error) {
+      next(error);
     }
   },
 
@@ -149,8 +186,8 @@ export const userController = {
       const currentUser = await userServices.getUser(id);
       if (!currentUser) throw new NotFoundError("User not found.");
 
-      const idKey = type === "cover" ? "coverAvatarUrlId" : "realAvatarUrlId";
       const urlKey = type === "cover" ? "coverAvatarUrl" : "realAvatarUrl";
+      const idKey = type === "cover" ? "coverAvatarUrlId" : "realAvatarUrlId";
       const existingFileId = currentUser[idKey];
 
       if (existingFileId) {
@@ -161,11 +198,22 @@ export const userController = {
         }
       }
 
+      // UPDATES IN CLERK
+      const updatedClerkUserImage =
+        type === "real" &&
+        (await clerkClient.users.updateUserProfileImage(currentUser.clerkId, {
+          file,
+        } as any));
+      if (type === "real" && !updatedClerkUserImage)
+        throw new InternalError("Failed to process image update.");
+
+      // UPLOAD TO IK
       const uploadResult = await mediaService.uploadImage(file, "avatars");
       if (!uploadResult)
         throw new InternalError("Failed to process image upload.");
 
-      const updatedUser = await userServices.updateUser(id, {
+      // UPDATE IN DB
+      const updatedUser = await userServices.updateUserImages(id, {
         [urlKey]: uploadResult.url,
         [idKey]: uploadResult.fileId,
       });
@@ -174,6 +222,43 @@ export const userController = {
         success: true,
         data: updatedUser,
         message: "Profile image updated.",
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // UPDATE USER
+  async updateName(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.user;
+      const { firstname, lastname } = req.body;
+
+      if (!firstname && lastname) {
+        throw new BadRequestError(
+          "Provide your full name (first and last name).",
+        );
+      }
+
+      const currentUser = await userServices.getUser(id);
+      if (!currentUser) throw new NotFoundError("User not found.");
+
+      const data = { firstName: firstname, lastName: lastname };
+      const updatedClerkUser = await clerkClient.users.updateUser(
+        currentUser.id,
+        data,
+      );
+      if (!updatedClerkUser)
+        throw new InternalError("Failed to update your profile.");
+
+      const updatedUser = await userServices.updateUser(currentUser.id, data);
+      if (!updatedUser)
+        throw new InternalError("Failed to update your profile.");
+
+      res.status(200).json({
+        success: true,
+        data: updatedUser,
+        message: "Profile updated.",
       });
     } catch (error) {
       next(error);

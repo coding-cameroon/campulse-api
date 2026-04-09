@@ -11,8 +11,8 @@ export const userServices = {
     });
   },
 
-  //   UPDATE USER
-  async updateUser(
+  //   UPDATE USER IMAGES
+  async updateUserImages(
     id: string,
     data: Partial<
       Pick<
@@ -23,6 +23,21 @@ export const userServices = {
         | "realAvatarUrlId"
       >
     >,
+  ): Promise<User> {
+    return await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(users)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning();
+      return updated;
+    });
+  },
+
+  //   UPDATE USER
+  async updateUser(
+    id: string,
+    data: Partial<Pick<User, "firstName" | "lastName">>,
   ): Promise<User> {
     return await db.transaction(async (tx) => {
       const [updated] = await tx
