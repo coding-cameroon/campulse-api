@@ -1,17 +1,23 @@
-import express from "express";
+// PACKAGE IMPORTS
 import cors from "cors";
+import express from "express";
 import type { Request, Response } from "express";
 import { clerkMiddleware } from "@clerk/express";
 
+// CONFIG
 import { PORT } from "@/config/env";
 import { connectDB } from "@/config/db";
+
+// ROUTES
 import { userRouter } from "./modules/users/user.route.js";
 import { postRouter } from "./modules/posts/post.route.js";
-import { globalErrorHandler } from "./middlewares/error.middleware.js";
 import { commentRouter } from "./modules/comments/comment.route.js";
+import { globalErrorHandler } from "./middlewares/error.middleware.js";
+import { reactionRouter } from "./modules/reactions/reaction.route.js";
 
 const app = express();
 
+// MIDDLEWARES
 app.use(
   cors({
     origin: "*",
@@ -29,6 +35,7 @@ app.get("/", (_: Request, res: Response) => {
 app.use("/v1/api/users", userRouter);
 app.use("/v1/api/posts", postRouter);
 app.use("/v1/api/comments", commentRouter);
+app.use("/v1/api/reactions", reactionRouter);
 
 // last middleware to be used
 app.use(globalErrorHandler);
