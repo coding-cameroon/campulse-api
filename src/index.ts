@@ -1,6 +1,7 @@
 // PACKAGE IMPORTS
 import cors from "cors";
 import express from "express";
+import { createServer } from "http";
 import type { Request, Response } from "express";
 import { clerkMiddleware } from "@clerk/express";
 
@@ -18,8 +19,11 @@ import { reactionRouter } from "./modules/reactions/reaction.route.js";
 // LOGGER & JOBS
 import { logger } from "./logger/logger.js";
 import { startCronJobs } from "./jobs/post.cron.js";
+import { initSocketIo } from "./config/socket.js";
 
+// SERVER
 const app = express();
+const server = createServer(app);
 
 // MIDDLEWARES
 app.use(
@@ -54,8 +58,9 @@ app.use(globalErrorHandler);
 export const startServer = async () => {
   try {
     await connectDB();
+    initSocketIo(server);
 
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       logger.log("info", `Server running on  http://localhost:${PORT}`);
 
       if (ENABLE_CRON === "true") {

@@ -8,6 +8,8 @@ import {
 import type { Request, Response, NextFunction } from "express";
 import { reactionServices } from "./reaction.service.js";
 import { postServices } from "../posts/post.service.js";
+import { socketEvents } from "@/sockets/index.js";
+import { getIO } from "@/config/socket.js";
 
 const VALID_REACTIONS = ["like", "heart", "laugh", "sad"] as const;
 type ReactionType = (typeof VALID_REACTIONS)[number];
@@ -57,17 +59,25 @@ export const reactionController = {
         );
       }
 
-      const created = await reactionServices.createReactions({
+      const createdReaction = await reactionServices.createReactions({
         postId,
         userId,
         type,
       } as Reaction);
-      if (!created) throw new InternalError("Failed to create reaction.");
+      if (!createdReaction)
+        throw new InternalError("Failed to create reaction.");
+      const reactions = await reactionServices.getReactions(postId as string);
 
-      return res.status(201).json({
+      res.status(201).json({
         success: true,
-        data: created,
+        data: createdReaction,
         message: "Reaction added.",
+      });
+
+      socketEvents.reactionUpdated(getIO(), {
+        postId: postId as string,
+        reactionCount: reactions.length || 0,
+        action: reactionExists ? "deleted" : "created",
       });
     } catch (error) {
       next(error);

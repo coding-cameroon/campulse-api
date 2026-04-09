@@ -6,7 +6,9 @@ import {
   InternalError,
   NotFoundError,
 } from "@/errors/AppError.js";
+import { getIO } from "@/config/socket.js";
 import { Comment } from "@/db/schema/comments.js";
+import { socketEvents } from "@/sockets/index.js";
 import { postServices } from "@/modules/posts/post.service.js";
 
 export const commentController = {
@@ -37,11 +39,18 @@ export const commentController = {
       } as Comment);
 
       if (!newComment) throw new InternalError("Failed to create comment.");
+      const comments = await commentServices.getComments(postId as string);
 
-      return res.status(201).json({
+      res.status(201).json({
         success: true,
         data: newComment,
         message: "Comment created.",
+      });
+
+      socketEvents.commentCreated(getIO(), {
+        comment: newComment,
+        postId: newComment.postId,
+        commentCount: comments.length || 0,
       });
     } catch (error) {
       next(error);
@@ -65,11 +74,20 @@ export const commentController = {
 
       const deletedComment = await commentServices.deleteComment(id as string);
       if (!deletedComment) throw new InternalError("Failed to delete comment.");
+      const comments = await commentServices.getComments(
+        deletedComment.postId as string,
+      );
 
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         data: deletedComment,
         message: "Comment deleted successfully.",
+      });
+
+      socketEvents.commentDeleted(getIO(), {
+        postId: comments[0].postId,
+        commentId: deletedComment.id,
+        commentCount: comments.length || 0,
       });
     } catch (error) {
       next(error);
