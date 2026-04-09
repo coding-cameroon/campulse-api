@@ -10,7 +10,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:generate": "drizzle-kit generate",
     "dev": "bun --watch run src/index.ts",
-    "build": "bun build src/index.ts --outdir ./dist"
+    "build": "bun build src/index.ts --outdir ./dist --target=node"
   },
   "devDependencies": {
     "@types/bun": "latest",
