@@ -5,6 +5,10 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "bun run src/index.js",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:migrate": "drizzle-kit migrate",
+    "db:generate": "drizzle-kit generate",
     "dev": "bun --watch run src/index.ts",
     "build": "bun build src/index.ts --outdir ./dist"
   },
