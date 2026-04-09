@@ -1,4 +1,4 @@
-import { and, desc, eq, gt } from "drizzle-orm";
+import { and, desc, eq, gt, isNotNull, lt, or } from "drizzle-orm";
 import { db } from "@/config/db.js";
 import { NewPost, Post, posts } from "@/db/schema/posts.js";
 
@@ -47,6 +47,32 @@ export const postServices = {
     return post;
   },
 
+  // GET EXPIRED POSTS
+  async getExpiredPost(): Promise<Post[]> {
+    const post = await db
+      .select()
+      .from(posts)
+      .where(or(eq(posts.status, "expired"), lt(posts.expiresAt, new Date())));
+    return post;
+  },
+
+  // GET EXPIRED POST
+  async updateExpiredPosts(): Promise<Post[]> {
+    return await db.transaction(async (tx) => {
+      return await tx
+        .update(posts)
+        .set({ status: "expired" })
+        .where(
+          and(
+            lt(posts.expiresAt, new Date()),
+            eq(posts.status, "active"),
+            isNotNull(posts.expiresAt),
+          ),
+        )
+        .returning();
+    });
+  },
+
   // DELETE POST
   async deletePost(id: string): Promise<NewPost> {
     return await db.transaction(async (tx) => {
@@ -56,6 +82,16 @@ export const postServices = {
         .returning();
 
       return deletedPost;
+    });
+  },
+
+  // DELETE POST
+  async deleteExpiredPost(): Promise<NewPost[]> {
+    return await db.transaction(async (tx) => {
+      return await tx
+        .delete(posts)
+        .where(eq(posts.status, "expired"))
+        .returning();
     });
   },
 };

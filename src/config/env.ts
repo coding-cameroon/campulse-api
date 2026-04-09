@@ -5,7 +5,9 @@ const dotenv = config({ override: true, quiet: true });
 export const {
   PORT,
   NODE_ENV,
+  CLIENT_URL,
   ADMIN_EMAIL,
+  ENABLE_CRON,
   DATABASE_URL,
   CLERK_SECRET_KEY,
   IMAGEKIT_PUBLIC_KEY,
