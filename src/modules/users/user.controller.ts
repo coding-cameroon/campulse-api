@@ -23,7 +23,7 @@ export const userController = {
 
       const userExist = await userServices.findByClerkId(clerkUser.id);
       if (userExist)
-        res.status(209).json({
+        return res.status(209).json({
           success: true,
           data: userExist,
           message: "User already exist.",
