@@ -22,7 +22,12 @@ export const userController = {
       const clerkUser = await clerkClient.users.getUser(userId);
 
       const userExist = await userServices.findByClerkId(clerkUser.id);
-      if (userExist) throw new ConflictError("User already exist.");
+      if (userExist)
+        res.status(209).json({
+          success: true,
+          data: userExist,
+          message: "User already exist.",
+        });
 
       // data
       const anonymousName = generateAnonName();
