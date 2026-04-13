@@ -35,6 +35,6 @@ export function globalErrorHandler(
   return res.status(500).json({
     success: false,
     message: "Something went wrong. Please try again.",
-    ...(NODE_ENV === "development" && { stack: err.stack }),
+    ...(NODE_ENV === "development" && { stack: err.stack, error: err }),
   });
 }
