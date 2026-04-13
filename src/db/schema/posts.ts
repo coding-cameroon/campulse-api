@@ -6,6 +6,7 @@ import {
   timestamp,
   jsonb,
   index,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { IntegrationInSerializer } from "svix/dist/models/integrationIn.js";
@@ -23,6 +24,13 @@ export const postStatusEnum = pgEnum("post_status", [
 ]);
 
 export const itemStatusEnum = pgEnum("item_status", ["lost", "found"]);
+export const eventCategoryEnum = pgEnum("event_category", [
+  "Academic",
+  "Tech",
+  "Social",
+  "Career",
+  "Sports",
+]);
 
 export const posts = pgTable(
   "posts",
@@ -58,6 +66,9 @@ export const posts = pgTable(
     itemStatus: itemStatusEnum("item_status"),
 
     // events
+    price: integer("price"),
+    eventCategory: eventCategoryEnum("event_category"),
+    isFree: boolean("is_free").default(true),
     eventLocation: text("event_location"),
     eventStartAt: timestamp("event_start_at"),
     eventEndAt: timestamp("event_end_at"),
