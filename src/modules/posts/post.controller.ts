@@ -20,6 +20,8 @@ export const postController = {
         category,
         body,
         title,
+        isFree,
+        price,
         collectAt,
         lastSeenAt,
         phoneNumber,
@@ -52,6 +54,8 @@ export const postController = {
           throw new BadRequestError("Event location is required");
         if (!mapCoordinates)
           throw new BadRequestError("Provide event geo coordinates");
+        if (!isFree || !price)
+          throw new BadRequestError("Provide event entry info.");
       }
 
       if (category === "lost_found") {
@@ -91,6 +95,8 @@ export const postController = {
         eventLocation,
         mapCoordinates,
         authorId: id,
+        isFree,
+        price,
         eventStartAt: parsedEventStartAt,
         eventEndAt: parsedEventEndAt,
         expiresAt: expriryDate(category, parsedEventEndAt),
