@@ -17,9 +17,9 @@ export const userController = {
   async syncUser(req: Request, res: Response, next: NextFunction) {
     try {
       const { userId } = getAuth(req);
-      if (!userId) throw new BadRequestError("User id ot provided.");
+      if (!userId) throw new BadRequestError("Clerk user id not provided.");
 
-      const clerkUser = await clerkClient.users.getUser(userId || "");
+      const clerkUser = await clerkClient.users.getUser(userId);
 
       const userExist = await userServices.findByClerkId(clerkUser.id);
       if (userExist) throw new ConflictError("User already exist.");
@@ -239,7 +239,7 @@ export const userController = {
       const { id } = req.user;
       const { firstname, lastname } = req.body;
 
-      if (!firstname || lastname) {
+      if (!firstname || !lastname) {
         throw new BadRequestError(
           "Provide your full name (first and last name).",
         );
