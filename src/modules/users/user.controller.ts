@@ -52,7 +52,9 @@ export const userController = {
 
       // data
       const anonymousName = generateAnonName();
-      const anonymousAvatarUrl = generateDicebearUrl(clerkUser.id);
+      const anonymousAvatarUrlSVG = generateDicebearUrl(clerkUser.id);
+      const anonymousAvatarUrl = anonymousAvatarUrlSVG.replace("/svg", "/png");
+
       const role = determineRole(email);
 
       const userData = {
