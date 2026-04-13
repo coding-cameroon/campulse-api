@@ -49,6 +49,18 @@ export const userServices = {
     });
   },
 
+  //   UPDATE CLERK ID
+  async updateClerkId(id: string, clerkId: string): Promise<User> {
+    return await db.transaction(async (tx) => {
+      const [updated] = await tx
+        .update(users)
+        .set({ clerkId, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning();
+      return updated;
+    });
+  },
+
   //   DEACTIVATE USER
   async toggleUserActiveState(id: string, state = false): Promise<User> {
     return await db.transaction(async (tx) => {
@@ -89,6 +101,16 @@ export const userServices = {
       .select()
       .from(users)
       .where(eq(users.clerkId, clerkId))
+      .limit(1);
+    return result[0] ?? null;
+  },
+
+  //   FIND USER BY CLERK ID
+  async findByEmail(email: string): Promise<User | null> {
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
       .limit(1);
     return result[0] ?? null;
   },

@@ -21,20 +21,38 @@ export const userController = {
 
       const clerkUser = await clerkClient.users.getUser(userId);
 
-      const userExist = await userServices.findByClerkId(clerkUser.id);
-      if (userExist)
-        return res.status(209).json({
+      const email =
+        clerkUser.primaryEmailAddress?.emailAddress ||
+        clerkUser.emailAddresses[0].emailAddress;
+
+      const userExist =
+        (await userServices.findByClerkId(clerkUser.id)) ||
+        (await userServices.findByEmail(email));
+      if (userExist) {
+        if (userExist.clerkId !== clerkUser.id) {
+          // ✅ Update stale clerkId to the new one
+          const updated = await userServices.updateClerkId(
+            userExist.id,
+            clerkUser.id,
+          );
+          return res.status(200).json({
+            success: true,
+            data: updated,
+            message: "User re-synced successfully",
+          });
+        }
+
+        // clerkId matches — user is fully up to date
+        return res.status(200).json({
           success: true,
           data: userExist,
-          message: "User already exist.",
+          message: "User already exists.",
         });
+      }
 
       // data
       const anonymousName = generateAnonName();
       const anonymousAvatarUrl = generateDicebearUrl(clerkUser.id);
-      const email =
-        clerkUser.primaryEmailAddress?.emailAddress ||
-        clerkUser.emailAddresses[0].emailAddress;
       const role = determineRole(email);
 
       const userData = {

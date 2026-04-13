@@ -30,10 +30,21 @@ export function globalErrorHandler(
     });
   }
 
+  if (
+    // err?.cause?.code === "23505" ||
+    err?.message?.includes("duplicate key") ||
+    err?.message?.includes("already exists")
+  ) {
+    return res.status(409).json({
+      success: false,
+      error: err?.message,
+      message: "Resource already exists",
+    });
+  }
+
   console.error("Unhandled error:", err);
 
   return res.status(500).json({
-    error: err,
     success: false,
     message: "Something went wrong. Please try again.",
     ...(NODE_ENV === "development" && { stack: err.stack, error: err }),
