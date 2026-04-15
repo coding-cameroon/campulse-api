@@ -7,6 +7,6 @@ const router = Router();
 router.get("/:id", requireAuth, commentController.getComment);
 router.get("/:id/post", requireAuth, commentController.getComments);
 router.delete("/:id", requireAuth, commentController.deleteComment);
-router.post("/create", requireAuth, commentController.createComment);
+router.post("/:postId/create", requireAuth, commentController.createComment);
 
 export { router as commentRouter };
