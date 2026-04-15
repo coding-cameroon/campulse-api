@@ -30,6 +30,7 @@ export const postController = {
         eventStartAt,
         eventEndAt,
         mapCoordinates,
+        eventCategory,
       } = req.body;
 
       const {
@@ -46,6 +47,8 @@ export const postController = {
 
       if (category === "event") {
         if (!title) throw new BadRequestError("Event title is required");
+        if (!eventCategory)
+          throw new BadRequestError("Provide event category.");
         if (!eventStartAt)
           throw new BadRequestError("Event start date is required");
         if (!eventEndAt)
