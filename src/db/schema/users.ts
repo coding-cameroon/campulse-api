@@ -33,6 +33,7 @@ export const users = pgTable("users", {
 });
 
 export const userRelationships = relations(users, ({ many }) => ({
+  posts: many(posts),
   reactions: many(reactions),
   comments: many(comments),
 }));
