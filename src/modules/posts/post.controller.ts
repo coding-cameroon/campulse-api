@@ -109,6 +109,8 @@ export const postController = {
         realAvatarUrl: !isAnon ? realAvatarUrl : null,
       });
 
+      console.log(post);
+
       res.status(201).json({
         success: true,
         data: post,
