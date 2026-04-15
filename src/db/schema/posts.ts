@@ -10,6 +10,9 @@ import {
 } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { IntegrationInSerializer } from "svix/dist/models/integrationIn.js";
+import { relations } from "drizzle-orm";
+import { comments } from "./comments.js";
+import { reactions } from "./reactions.js";
 
 export const postCategoryEnum = pgEnum("post_category", [
   "feed",
@@ -92,6 +95,11 @@ export const posts = pgTable(
     authorIdx: index("posts_author_idx").on(table.authorId),
   }),
 );
+
+export const postRelations = relations(posts, ({ many }) => ({
+  comments: many(comments),
+  reactions: many(reactions),
+}));
 
 export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;

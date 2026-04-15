@@ -25,33 +25,24 @@ export const commentController = {
       if (!post) throw new NotFoundError(`No post found with id: ${postId}`);
 
       const newComment = await commentServices.createComment({
-        authorId: user.id,
-        body: comment,
         postId,
-        displayName:
-          post.category === "feed"
-            ? user.anonymousName
-            : `${user.firstName} ${user.lastName}`,
-        displayAvatarUrl:
-          post.category === "feed"
-            ? user.anonymousAvatarUrl
-            : (user.realAvatarUrl ?? user.anonymousAvatarUrl),
+        body: comment,
+        authorId: user.id,
       } as Comment);
 
       if (!newComment) throw new InternalError("Failed to create comment.");
-      const comments = await commentServices.getComments(postId as string);
 
-      res.status(201).json({
+      return res.status(201).json({
         success: true,
         data: newComment,
         message: "Comment created.",
       });
 
-      socketEvents.commentCreated(getIO(), {
-        comment: newComment,
-        postId: newComment.postId,
-        commentCount: comments.length || 0,
-      });
+      // socketEvents.commentCreated(getIO(), {
+      //   comment: newComment,
+      //   postId: newComment.postId,
+      //   commentCount: comments.length || 0,
+      // });
     } catch (error) {
       next(error);
     }

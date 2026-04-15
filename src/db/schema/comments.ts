@@ -1,6 +1,7 @@
 import { pgTable, text, timestamp, index } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { posts } from "./posts";
+import { relations } from "drizzle-orm";
 
 export const comments = pgTable(
   "comments",
@@ -16,8 +17,6 @@ export const comments = pgTable(
     authorId: text("author_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    displayName: text("display_name").notNull(),
-    displayAvatarUrl: text("display_avatar_url").notNull(),
 
     body: text("body").notNull(),
 
@@ -28,6 +27,17 @@ export const comments = pgTable(
     authorIdx: index("comments_author_idx").on(table.authorId),
   }),
 );
+
+export const commentRelationship = relations(comments, ({ one }) => ({
+  post: one(posts, {
+    fields: [comments.postId],
+    references: [posts.id],
+  }),
+  author: one(users, {
+    fields: [comments.authorId],
+    references: [users.id],
+  }),
+}));
 
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;

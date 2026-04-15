@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "@/config/db.js";
 import { Comment, comments, NewComment } from "@/db/schema/comments.js";
 
@@ -26,21 +26,22 @@ export const commentServices = {
   async getComments(id: string, page = 1, limit = 20): Promise<Comment[]> {
     const offset = (page - 1) * limit;
 
-    return await db
-      .select()
-      .from(comments)
-      .where(eq(comments.postId, id))
-      .limit(limit)
-      .offset(offset);
+    return await db.query.comments.findMany({
+      where: eq(comments.postId, id),
+      with: { author: true },
+      limit,
+      offset,
+      orderBy: desc(comments.createdAt),
+    });
   },
 
   // get comment
-  async getComment(id: string): Promise<Comment> {
-    const [comment] = await db
-      .select()
-      .from(comments)
-      .where(eq(comments.id, id))
-      .limit(1);
-    return comment;
+  async getComment(id: string): Promise<Comment | undefined> {
+    return await db.query.comments.findFirst({
+      where: eq(comments.id, id),
+      with: {
+        author: true,
+      },
+    });
   },
 };

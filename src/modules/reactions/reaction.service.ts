@@ -14,22 +14,28 @@ export const reactionServices = {
   },
 
   //   GET REACTION
-  async getReaction({ userId, postId }: reactionProps): Promise<Reaction> {
-    const [reaction] = await db
-      .select()
-      .from(reactions)
-      .where(and(eq(reactions.userId, userId), eq(reactions.postId, postId)))
-      .limit(1);
-
-    return reaction;
+  async getReaction({
+    userId,
+    postId,
+  }: reactionProps): Promise<Reaction | undefined> {
+    return await db.query.reactions.findFirst({
+      where: and(eq(reactions.userId, userId), eq(reactions.postId, postId)),
+      with: {
+        author: true,
+        post: true,
+      },
+    });
   },
 
   //   GET REACTION
   async getReactions(postId: string): Promise<Reaction[]> {
-    return await db
-      .select()
-      .from(reactions)
-      .where(eq(reactions.postId, postId));
+    return await db.query.reactions.findMany({
+      where: eq(reactions.postId, postId),
+      with: {
+        author: true,
+        post: true,
+      },
+    });
   },
 
   //   DELETE REACTION

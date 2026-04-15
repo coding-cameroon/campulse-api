@@ -1,4 +1,8 @@
+import { relations } from "drizzle-orm";
+import { comments } from "./comments.js";
+import { reactions } from "./reactions.js";
 import { pgTable, pgEnum, text, boolean, timestamp } from "drizzle-orm/pg-core";
+import { posts } from "./posts.js";
 
 export const roleEnum = pgEnum("role", ["student", "admin"]);
 
@@ -27,6 +31,11 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const userRelationships = relations(users, ({ many }) => ({
+  reactions: many(reactions),
+  comments: many(comments),
+}));
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;

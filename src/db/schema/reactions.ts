@@ -8,6 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { posts } from "./posts";
+import { relations } from "drizzle-orm";
 
 export const reactionTypeEnum = pgEnum("reaction_type", [
   "like",
@@ -41,6 +42,17 @@ export const reactions = pgTable(
     userIdx: index("reactions_user_idx").on(table.userId),
   }),
 );
+
+export const reactionRelationship = relations(reactions, ({ many, one }) => ({
+  author: one(users, {
+    fields: [reactions.userId],
+    references: [users.id],
+  }),
+  post: one(posts, {
+    fields: [reactions.postId],
+    references: [posts.id],
+  }),
+}));
 
 export type Reaction = typeof reactions.$inferSelect;
 export type NewReaction = typeof reactions.$inferInsert;
