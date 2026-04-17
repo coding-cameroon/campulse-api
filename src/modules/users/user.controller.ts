@@ -11,6 +11,7 @@ import {
   NotFoundError,
 } from "@/errors/AppError.js";
 import { mediaService } from "../media/media.service.js";
+import { Blob } from "buffer";
 
 export const userController = {
   // SYNC USER DATA INTO DB
@@ -229,11 +230,19 @@ export const userController = {
       }
 
       // UPDATES IN CLERK
+      // const updatedClerkUserImage =
+      //   type === "real" &&
+      //   (await clerkClient.users.updateUserProfileImage(currentUser.clerkId, {
+      //     file,
+      //   } as any));
+
+      const fileBlob = new Blob([file.buffer as any], { type: file.mimetype });
+
       const updatedClerkUserImage =
-        type === "real" &&
-        (await clerkClient.users.updateUserProfileImage(currentUser.clerkId, {
-          file,
-        } as any));
+        await clerkClient.users.updateUserProfileImage(currentUser.clerkId, {
+          file: fileBlob as any, // Clerk expects a Blob/File
+        });
+
       if (type === "real" && !updatedClerkUserImage)
         throw new InternalError("Failed to process image update.");
 
