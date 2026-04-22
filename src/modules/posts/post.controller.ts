@@ -33,6 +33,10 @@ export const postController = {
         eventCategory,
       } = req.body;
 
+      console.log("[createPost] req.body:", req.body);
+      console.log("[createPost] req.files:", req.files);
+      console.log("[createPost] eventLocation:", eventLocation);
+
       const {
         id,
         anonymousName,
