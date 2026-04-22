@@ -32,17 +32,22 @@ export const commentController = {
 
       if (!newComment) throw new InternalError("Failed to create comment.");
 
-      return res.status(201).json({
+      const comments = await postServices.updateCommentCount(
+        newComment.postId as string,
+        true,
+      );
+
+      res.status(201).json({
         success: true,
         data: newComment,
         message: "Comment created.",
       });
 
-      // socketEvents.commentCreated(getIO(), {
-      //   comment: newComment,
-      //   postId: newComment.postId,
-      //   commentCount: comments.length || 0,
-      // });
+      socketEvents.commentCreated(getIO(), {
+        comment: newComment,
+        postId: newComment.postId,
+        commentCount: comments.commentCount || 0,
+      });
     } catch (error) {
       next(error);
     }
@@ -67,6 +72,11 @@ export const commentController = {
       if (!deletedComment) throw new InternalError("Failed to delete comment.");
       const comments = await commentServices.getComments(
         deletedComment.postId as string,
+      );
+
+      await postServices.updateCommentCount(
+        deletedComment.postId as string,
+        false,
       );
 
       res.status(200).json({

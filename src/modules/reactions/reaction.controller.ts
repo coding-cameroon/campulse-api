@@ -45,6 +45,8 @@ export const reactionController = {
         } as reactionProps);
         if (!deleted) throw new InternalError("Failed to delete reaction.");
 
+        await postServices.updateReactionCount(postId as string, false);
+
         return res.status(200).json({
           success: true,
           data: deleted,
@@ -67,6 +69,7 @@ export const reactionController = {
       if (!createdReaction)
         throw new InternalError("Failed to create reaction.");
       const reactions = await reactionServices.getReactions(postId as string);
+      await postServices.updateReactionCount(postId as string, true);
 
       res.status(201).json({
         success: true,

@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, isNotNull, lt, or } from "drizzle-orm";
+import { and, desc, eq, gt, isNotNull, lt, or, sql } from "drizzle-orm";
 import { db } from "@/config/db.js";
 import { NewPost, Post, posts } from "@/db/schema/posts.js";
 
@@ -92,6 +92,37 @@ export const postServices = {
         .delete(posts)
         .where(eq(posts.status, "expired"))
         .returning();
+    });
+  },
+
+  async updateReactionCount(id: string, increment: boolean): Promise<void> {
+    await db.transaction(async (tx) => {
+      tx.update(posts)
+        .set({
+          reactionCount: increment
+            ? sql`${posts.reactionCount} + 1`
+            : sql`GREATEST(${posts.reactionCount} - 1, 0)`,
+          updatedAt: new Date(),
+        })
+        .where(eq(posts.id, id));
+    });
+  },
+
+  // UPDATE COMMENT COUNT
+  async updateCommentCount(id: string, increment: boolean): Promise<Post> {
+    return await db.transaction(async (tx) => {
+      const [updatedPost] = await tx
+        .update(posts)
+        .set({
+          commentCount: increment
+            ? sql`${posts.commentCount} + 1`
+            : sql`GREATEST(${posts.commentCount} - 1, 0)`,
+          updatedAt: new Date(),
+        })
+        .where(eq(posts.id, id))
+        .returning();
+
+      return updatedPost;
     });
   },
 };
